@@ -9,7 +9,7 @@ public class PlayerMove : MonoBehaviour
     private Vector3 vector3Move;
     private Vector2 moveValue = new Vector2(0, 0);
     private bool isSprinting = false;
-    private float speed = 5f;
+    public float speed = 5f;
     public float maxSpeed;
     public float minSpeed;
     // Start is called before the first frame update
@@ -26,7 +26,7 @@ public class PlayerMove : MonoBehaviour
         characterController.Move(vector3Move * Time.deltaTime * speed);
         if(isSprinting && moveValue.y > 0)
         {
-            speed += 0.05f;
+            speed += 0.1f;
             if(speed >= maxSpeed)
             {
                 speed = maxSpeed;
@@ -35,7 +35,7 @@ public class PlayerMove : MonoBehaviour
         }
         if(!(isSprinting) || moveValue.y <= 0)
         {
-            speed -= 0.05f;
+            speed -= 0.1f;
             if(speed <= minSpeed)
             {
                 speed = minSpeed;

@@ -11,8 +11,13 @@ public class CrouchAndSlide : MonoBehaviour
     public float stanceSmoothTime;
     public CapsuleCollider colliderStand;
     public CapsuleCollider colliderCrouch;
-    public CharacterController characterCollider;
+    private float heightError = 0.2f;
+    public CharacterController characterController;
     public GameObject stanceChecker;
+    private PlayerMove playerMove;
+    public float crouchSpeed;
+    private float standSpeed;
+    //player mask is to ignore collision with the layer "Player". The layer "Player" is meant for the player model.
     public LayerMask playerMask;
     private float currentCamHeight;
     private float stanceVelocity = 0;
@@ -27,9 +32,12 @@ public class CrouchAndSlide : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        playerMove = GetComponent<PlayerMove>();
         playerStances = stances.stand;
         currentCamHeight = camStandHeight;
-        characterCollider.height = colliderStand.height;
+        characterController.height = colliderStand.height;
+        standSpeed = playerMove.minSpeed;
+        
     }
 
     // Update is called once per frame
@@ -37,12 +45,18 @@ public class CrouchAndSlide : MonoBehaviour
     {
         if(playerStances == stances.stand)
         {
+            //checks if possible for player to stand up. Player height freezes the moment canChangeStance() is false. Player height continues when true.
             if (canChangeStance())
             {
                 currentCamHeight = Mathf.SmoothDamp(currentCamHeight, camStandHeight, ref stanceVelocity, stanceSmoothTime);
                 playerCam.transform.localPosition = new Vector3(playerCam.transform.localPosition.x, currentCamHeight, playerCam.transform.localPosition.z);
-                characterCollider.height = Mathf.SmoothDamp(characterCollider.height, colliderStand.height, ref stanceVelocity, stanceSmoothTime);
-                characterCollider.center = Vector3.SmoothDamp(characterCollider.center, new Vector3(0, 0, 0), ref stancePositionVelocity, stanceSmoothTime);
+                characterController.height = Mathf.SmoothDamp(characterController.height, colliderStand.height, ref stanceVelocity, stanceSmoothTime);
+                characterController.center = Vector3.SmoothDamp(characterController.center, new Vector3(0, 0, 0), ref stancePositionVelocity, stanceSmoothTime);
+                //Checks if player is at proper height to move at standSpeed.
+                if (characterController.height >= (colliderStand.height - heightError))
+                {
+                    playerMove.minSpeed = standSpeed;
+                }
             }
             
         } else if(playerStances == stances.crouch)
@@ -50,14 +64,16 @@ public class CrouchAndSlide : MonoBehaviour
             
             currentCamHeight = Mathf.SmoothDamp(currentCamHeight, camCrouchHeight, ref stanceVelocity, stanceSmoothTime);
             playerCam.transform.localPosition = new Vector3(playerCam.transform.localPosition.x, currentCamHeight, playerCam.transform.localPosition.z);
-            characterCollider.height = Mathf.SmoothDamp(characterCollider.height, colliderCrouch.height, ref stanceVelocity, stanceSmoothTime);
-            characterCollider.center = Vector3.SmoothDamp(characterCollider.center, new Vector3(0, colliderCrouch.center.y, 0), ref stancePositionVelocity, stanceSmoothTime);
+            characterController.height = Mathf.SmoothDamp(characterController.height, colliderCrouch.height, ref stanceVelocity, stanceSmoothTime);
+            characterController.center = Vector3.SmoothDamp(characterController.center, new Vector3(0, colliderCrouch.center.y, 0), ref stancePositionVelocity, stanceSmoothTime);
+            playerMove.minSpeed = crouchSpeed;
             
         }
         
     }
     public void crouch(InputAction.CallbackContext context)
     {
+        //Changes stance state
         if (context.performed)
         {
             playerStances = stances.crouch;
@@ -72,6 +88,6 @@ public class CrouchAndSlide : MonoBehaviour
 
     private bool canChangeStance()
     {
-        return !(Physics.CheckSphere(stanceChecker.transform.position, characterCollider.radius - 0.1f, playerMask));
+        return !(Physics.CheckSphere(stanceChecker.transform.position, characterController.radius - 0.1f, playerMask));
     }
 }

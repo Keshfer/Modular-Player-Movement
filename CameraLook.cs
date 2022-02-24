@@ -7,7 +7,6 @@ public class CameraLook : MonoBehaviour
 {
     public Transform mainCamera;
     private Vector2 mouseDelta;
-    public string CameraObject;
     private float rotX;
     private float rotY;
     
