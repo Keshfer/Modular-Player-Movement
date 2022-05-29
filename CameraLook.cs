@@ -33,7 +33,7 @@ public class CameraLook : MonoBehaviour
             rotX += mouseDelta.x * sensitivity * Time.deltaTime * 10;
             rotY -= mouseDelta.y * sensitivity * Time.deltaTime * 10;
             rotY = Mathf.Clamp(rotY, -90, 90);
-            
+            //Replacing gameObject and mainCamera's angle values with new angle values
             gameObject.transform.localEulerAngles = new Vector3(transform.rotation.x, rotX, transform.rotation.z);
             mainCamera.transform.localEulerAngles = new Vector3(rotY, mainCamera.transform.rotation.y, mainCamera.transform.rotation.z);
             

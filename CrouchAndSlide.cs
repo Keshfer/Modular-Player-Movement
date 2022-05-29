@@ -12,10 +12,15 @@ public class CrouchAndSlide : MonoBehaviour
     public CapsuleCollider colliderStand;
     public CapsuleCollider colliderCrouch;
     private float heightError = 0.2f;
+    private float maxSpeedError = 3f;
     public CharacterController characterController;
     public GameObject stanceChecker;
     private PlayerMove playerMove;
+    private Jump jumpScript;
     public float crouchSpeed;
+    public float slideSpeed;
+    private float slideThreshold;
+    private bool slidePerformed = false;
     private float standSpeed;
     //player mask is to ignore collision with the layer "Player". The layer "Player" is meant for the player model.
     public LayerMask playerMask;
@@ -32,11 +37,29 @@ public class CrouchAndSlide : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        playerMove = GetComponent<PlayerMove>();
+        if(gameObject.GetComponent<PlayerMove>().enabled)
+        {
+            Debug.Log("PlayerMove Script found for CrouchAndSlide!");
+            playerMove = GetComponent<PlayerMove>();
+        } else
+        {
+            Debug.Log("PlayerMove Script not found for CrouchAndSlide.");
+        }
+        if(gameObject.GetComponent<Jump>().enabled)
+        {
+            Debug.Log("Jump script found for CrouchAndSlide!");
+            jumpScript = GetComponent<Jump>();
+        } else
+        {
+            Debug.Log("Jump script not found for CrouchAndSlide.");
+        }
+        
+        
         playerStances = stances.stand;
         currentCamHeight = camStandHeight;
         characterController.height = colliderStand.height;
         standSpeed = playerMove.minSpeed;
+        slideThreshold = playerMove.maxSpeed;
         
     }
 
@@ -45,6 +68,19 @@ public class CrouchAndSlide : MonoBehaviour
     {
         if(playerStances == stances.stand)
         {
+            if(!(jumpScript == null))
+            {
+                //slows the rate which speed changes when player is in air from jumping. Resets to normal rate when on the ground.
+                if (jumpScript.getJumped())
+                {
+                    playerMove.setAcceleration(0.05f);
+                }
+                else
+                {
+                    playerMove.setAcceleration(playerMove.getOriginalAcceleration());
+                }
+            }
+           
             //checks if possible for player to stand up. Player height freezes the moment canChangeStance() is false. Player height continues when true.
             if (canChangeStance())
             {
@@ -58,6 +94,16 @@ public class CrouchAndSlide : MonoBehaviour
                     playerMove.minSpeed = standSpeed;
                 }
             }
+            //if player speed is smaller/equal to the slideThreshold, or the player is sprinting, player minSpeed is set to stand Speed and maxSpeed is set to slideThreshold
+            if(playerMove.speed <= (slideThreshold - maxSpeedError) || playerMove.getIsSprinting())
+            {
+                playerMove.minSpeed = standSpeed;
+                playerMove.maxSpeed = slideThreshold;
+                slidePerformed = false;
+                
+            }
+            
+            
             
         } else if(playerStances == stances.crouch)
         {
@@ -66,10 +112,41 @@ public class CrouchAndSlide : MonoBehaviour
             playerCam.transform.localPosition = new Vector3(playerCam.transform.localPosition.x, currentCamHeight, playerCam.transform.localPosition.z);
             characterController.height = Mathf.SmoothDamp(characterController.height, colliderCrouch.height, ref stanceVelocity, stanceSmoothTime);
             characterController.center = Vector3.SmoothDamp(characterController.center, new Vector3(0, colliderCrouch.center.y, 0), ref stancePositionVelocity, stanceSmoothTime);
-            playerMove.minSpeed = crouchSpeed;
+            if(!(jumpScript == null))
+            {
+                //slows the rate which speed changes when player is in air from jumping. Resets to normal rate when on the ground.
+                if (jumpScript.getJumped())
+                {
+                    playerMove.setAcceleration(0.05f);
+                }
+                else
+                {
+                    playerMove.setAcceleration(playerMove.getOriginalAcceleration());
+                }
+            }
+            //code block for sliding. Slide will be performed if
+            //1. Speed is greater than required speed to slide (slideThreshold)
+            //2. Slide is currently not being performed
+            //3. Player is moving forward
+            if (playerMove.speed >= (slideThreshold - maxSpeedError) && !(slidePerformed) && (playerMove.getMoveValue().y > 0))
+            {
+                
+                playerMove.maxSpeed = slideSpeed;
+                playerMove.speed = slideSpeed;
+                slidePerformed = true;
+                
+
+            } else if(playerMove.speed <= (slideThreshold - maxSpeedError))
+            {
+                playerMove.minSpeed = crouchSpeed;
+                playerMove.maxSpeed = slideThreshold;
+                slidePerformed = false;
+                
+            }
+            
             
         }
-        
+
     }
     public void crouch(InputAction.CallbackContext context)
     {
@@ -77,17 +154,20 @@ public class CrouchAndSlide : MonoBehaviour
         if (context.performed)
         {
             playerStances = stances.crouch;
+            
         }
         if(context.canceled)
         {
-            
-            playerStances = stances.stand;
-                
+            playerStances = stances.stand;      
         }
     }
 
     private bool canChangeStance()
     {
         return !(Physics.CheckSphere(stanceChecker.transform.position, characterController.radius - 0.1f, playerMask));
+    }
+    public bool isSlidePerformed()
+    {
+        return slidePerformed;
     }
 }

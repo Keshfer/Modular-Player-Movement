@@ -6,10 +6,12 @@ using UnityEngine.InputSystem;
 public class Jump : MonoBehaviour
 {
     
-    private Vector3 jumpHeight = new Vector3(0,0,0);
+    public Vector3 jumpHeight;
     public CharacterController characterController;
+    private float ORIGINALSTEPOFFSET;
     public GameObject groundChecker;
     private bool isGround;
+    private bool jumped = false;
     public LayerMask ground;
     private Vector3 yVelocity = new Vector3 (0, 0, 0);
     private float groundPull = -55;
@@ -18,7 +20,7 @@ public class Jump : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        ORIGINALSTEPOFFSET = characterController.stepOffset;
 
        
     }
@@ -43,6 +45,7 @@ public class Jump : MonoBehaviour
             {
                 yVelocity.y = groundPull;
                 characterController.stepOffset = 0.5f;
+                jumped = false;
 
             }
             
@@ -61,17 +64,18 @@ public class Jump : MonoBehaviour
         
         if (context.performed)
         {
+            jumped = true;
             if (isGround)
             {
-                jumpHeight = new Vector3(0, 8f, 0);
                 yVelocity = jumpHeight;
             }
-        }
-        
-
-        
-        
+        }  
     
    }
+    public bool getJumped()
+    {
+        return jumped;
+    }
+    
 }
 
